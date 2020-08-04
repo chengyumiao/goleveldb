@@ -28,14 +28,15 @@ import (
 )
 
 // DB is a LevelDB database.
+// leveldb 最核心的类
 type DB struct {
 	// Need 64-bit alignment.
 	seq uint64
 
 	// Stats. Need 64-bit alignment.
-	cWriteDelay            int64 // The cumulative duration of write delays
-	cWriteDelayN           int32 // The cumulative number of write delays
-	inWritePaused          int32 // The indicator whether write operation is paused by compaction
+	cWriteDelay            int64 // The cumulative duration of write delays  写延迟
+	cWriteDelayN           int32 // The cumulative number of write delays   写延迟数量
+	inWritePaused          int32 // The indicator whether write operation is paused by compaction // 因为压缩写暂停
 	aliveSnaps, aliveIters int32
 
 	// Compaction statistic
