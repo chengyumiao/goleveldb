@@ -263,7 +263,7 @@ func (tr *Transaction) discard() {
 // Discard discards the transaction.
 // This method is noop if transaction is already closed (either committed or
 // discarded)
-//
+// 放弃事务，如果事务已经关闭则啥也不做
 // Other methods should not be called after transaction has been discarded.
 func (tr *Transaction) Discard() {
 	tr.lk.Lock()

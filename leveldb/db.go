@@ -91,6 +91,11 @@ type DB struct {
 	closer io.Closer
 }
 
+// 打开数据库的核心操作
+// 初始化DB结构体
+// 根据日志恢复只读或者日志库
+// 启动go程压缩错误，启动go程等待tuichu
+// 启动t，m 压缩
 func openDB(s *session) (*DB, error) {
 	s.log("db@open opening")
 	start := time.Now()
@@ -168,13 +173,20 @@ func openDB(s *session) (*DB, error) {
 // The DB will be created if not exist, unless ErrorIfMissing is true.
 // Also, if ErrorIfExist is true and the DB exist Open will returns
 // os.ErrExist error.
-//
+// 创建一个DB，如果库已经存在则会报错的
+
 // Open will return an error with type of ErrCorrupted if corruption
 // detected in the DB. Use errors.IsCorrupted to test whether an error is
 // due to corruption. Corrupted DB can be recovered with Recover function.
-//
+// 有可能出现冲突，可以调用Recover相关的函数
+
 // The returned DB instance is safe for concurrent use.
+// DB 并发安全
+
 // The DB must be closed after use, by calling Close method.
+// 调用结束后必须关闭
+
+// 创建一个会话，然后去recovery，没有错误则调用openDB
 func Open(stor storage.Storage, o *opt.Options) (db *DB, err error) {
 	s, err := newSession(stor, o)
 	if err != nil {
@@ -208,16 +220,21 @@ func Open(stor storage.Storage, o *opt.Options) (db *DB, err error) {
 // The DB will be created if not exist, unless ErrorIfMissing is true.
 // Also, if ErrorIfExist is true and the DB exist OpenFile will returns
 // os.ErrExist error.
-//
+// 指定文件创建库
+
 // OpenFile uses standard file-system backed storage implementation as
 // described in the leveldb/storage package.
-//
+// 存储使用的标准的块文件系统
+
 // OpenFile will return an error with type of ErrCorrupted if corruption
 // detected in the DB. Use errors.IsCorrupted to test whether an error is
 // due to corruption. Corrupted DB can be recovered with Recover function.
-//
+// 如果已经存在会报冲突
+
 // The returned DB instance is safe for concurrent use.
 // The DB must be closed after use, by calling Close method.
+
+// 根据path与选项option打开文件存储，调用Open大概一个DB
 func OpenFile(path string, o *opt.Options) (db *DB, err error) {
 	stor, err := storage.OpenFile(path, o.GetReadOnly())
 	if err != nil {
@@ -236,7 +253,8 @@ func OpenFile(path string, o *opt.Options) (db *DB, err error) {
 // for the given storage. It will ignore any manifest files, valid or not.
 // The DB must already exist or it will returns an error.
 // Also, Recover will ignore ErrorIfMissing and ErrorIfExist options.
-//
+// 如果清单文件出现丢失，冲突，那么Recover可以忽略这些文件，打开数据库
+
 // The returned DB instance is safe for concurrent use.
 // The DB must be closed after use, by calling Close method.
 func Recover(stor storage.Storage, o *opt.Options) (db *DB, err error) {
@@ -262,10 +280,12 @@ func Recover(stor storage.Storage, o *opt.Options) (db *DB, err error) {
 // for the given path. It will ignore any manifest files, valid or not.
 // The DB must already exist or it will returns an error.
 // Also, Recover will ignore ErrorIfMissing and ErrorIfExist options.
-//
+// RecoverFile将忽略已经存在等错误打开数据库
+
 // RecoverFile uses standard file-system backed storage implementation as described
 // in the leveldb/storage package.
-//
+// 基于标准块文件系统的实现，具体实现在storage包中
+
 // The returned DB instance is safe for concurrent use.
 // The DB must be closed after use, by calling Close method.
 func RecoverFile(path string, o *opt.Options) (db *DB, err error) {
@@ -853,8 +873,9 @@ func (db *DB) Get(key []byte, ro *opt.ReadOptions) (value []byte, err error) {
 }
 
 // Has returns true if the DB does contains the given key.
-//
+// 如果库里面存在给定的key，则返回true
 // It is safe to modify the contents of the argument after Has returns.
+// 一旦调用结束后，更改内容是安全的
 func (db *DB) Has(key []byte, ro *opt.ReadOptions) (ret bool, err error) {
 	err = db.ok()
 	if err != nil {
@@ -1136,10 +1157,15 @@ func (db *DB) SizeOf(ranges []util.Range) (Sizes, error) {
 
 // Close closes the DB. This will also releases any outstanding snapshot,
 // abort any in-flight compaction and discard open transaction.
-//
+// 关闭数据库，这个动作会释放任何标准的快照，中止正在进行中的压缩，以及放弃打开的事务
+
 // It is not safe to close a DB until all outstanding iterators are released.
+// 所有的迭代器释放之前，关闭数据库是不安全的
+
 // It is valid to call Close multiple times. Other methods should not be
 // called after the DB has been closed.
+// Close 方法可以被调用多次
+
 func (db *DB) Close() error {
 	if !db.setClosed() {
 		return ErrClosed
@@ -1162,20 +1188,25 @@ func (db *DB) Close() error {
 	}
 
 	// Signal all goroutines.
+	// 关闭所有的go程，通过一个关闭信号
 	close(db.closeC)
 
 	// Discard open transaction.
+	// 关闭事务
 	if db.tr != nil {
 		db.tr.Discard()
 	}
 
 	// Acquire writer lock.
+	// 发送写锁定信号
 	db.writeLockC <- struct{}{}
 
 	// Wait for all gorotines to exit.
+	// 等待所有的go程退出
 	db.closeW.Wait()
 
 	// Closes journal.
+	// 关闭日志
 	if db.journal != nil {
 		db.journal.Close()
 		db.journalWriter.Close()
@@ -1183,15 +1214,18 @@ func (db *DB) Close() error {
 		db.journalWriter = nil
 	}
 
+	// 输出写延迟的次数与延迟总时间
 	if db.writeDelayN > 0 {
 		db.logf("db@write was delayed N·%d T·%v", db.writeDelayN, db.writeDelay)
 	}
 
 	// Close session.
+	// 关闭session
 	db.s.close()
 	db.logf("db@close done T·%v", time.Since(start))
 	db.s.release()
 
+	// 调用closer接口
 	if db.closer != nil {
 		if err1 := db.closer.Close(); err == nil {
 			err = err1
@@ -1200,6 +1234,7 @@ func (db *DB) Close() error {
 	}
 
 	// Clear memdbs.
+	// 清理内存
 	db.clearMems()
 
 	return err

@@ -89,8 +89,11 @@ type fileStorage struct {
 // OpenFile returns a new filesystem-backed storage implementation with the given
 // path. This also acquire a file lock, so any subsequent attempt to open the
 // same path will fail.
-//
+// 基于块文件系统，开关后会获得一个文件锁，后续再有打开请求会失败
+
 // The storage must be closed after use, by calling Close method.
+// path 是文件夹路径
+// 返回：fileStorage
 func OpenFile(path string, readOnly bool) (Storage, error) {
 	if fi, err := os.Stat(path); err == nil {
 		if !fi.IsDir() {

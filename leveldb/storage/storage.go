@@ -14,6 +14,7 @@ import (
 )
 
 // FileType represent a file type.
+// 文件类型： 四种
 type FileType int
 
 // File types.
@@ -136,6 +137,7 @@ func FileDescOk(fd FileDesc) bool {
 }
 
 // Storage is the storage. A storage instance must be safe for concurrent use.
+// Storage实例需要是并发安全的
 type Storage interface {
 	// Lock locks the storage. Any subsequent attempt to call Lock will fail
 	// until the last lock released.

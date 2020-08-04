@@ -231,6 +231,7 @@ func (db *DB) isClosed() bool {
 }
 
 // Check read ok status.
+// 判断db是否已经关闭
 func (db *DB) ok() error {
 	if db.isClosed() {
 		return ErrClosed

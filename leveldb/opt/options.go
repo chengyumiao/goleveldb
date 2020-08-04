@@ -98,6 +98,7 @@ const (
 	// If present then a corrupted or invalid chunk or block in manifest
 	// journal will cause an error instead of being dropped.
 	// This will prevent database with corrupted manifest to be opened.
+	// 如果清单文件出现问题，则会报错而不会删除清单文件
 	StrictManifest Strict = 1 << iota
 
 	// If present then journal chunk checksum will be verified.
@@ -144,41 +145,43 @@ type Options struct {
 	// does not match with the 'effective filter'.
 	//
 	// The default value is nil
+	// 定制化过滤器的list
 	AltFilters []filter.Filter
 
 	// BlockCacher provides cache algorithm for LevelDB 'sorted table' block caching.
 	// Specify NoCacher to disable caching algorithm.
 	//
 	// The default value is LRUCacher.
+	// 块缓存，可以根据算法选择不同的缓存
 	BlockCacher Cacher
 
 	// BlockCacheCapacity defines the capacity of the 'sorted table' block caching.
 	// Use -1 for zero, this has same effect as specifying NoCacher to BlockCacher.
-	//
+	// 默认是8MB，如果-1，则表示不启用缓存
 	// The default value is 8MiB.
 	BlockCacheCapacity int
 
 	// BlockCacheEvictRemoved allows enable forced-eviction on cached block belonging
 	// to removed 'sorted table'.
-	//
+	// 是否允许块缓存剔除
 	// The default if false.
 	BlockCacheEvictRemoved bool
 
 	// BlockRestartInterval is the number of keys between restart points for
 	// delta encoding of keys.
-	//
+	// 
 	// The default value is 16.
 	BlockRestartInterval int
 
 	// BlockSize is the minimum uncompressed size in bytes of each 'sorted table'
 	// block.
-	//
+	// 最小的块大小，超过这个值则不拉取
 	// The default value is 4KiB.
 	BlockSize int
 
 	// CompactionExpandLimitFactor limits compaction size after expanded.
 	// This will be multiplied by table size limit at compaction target level.
-	//
+	// 压缩的级别
 	// The default value is 25.
 	CompactionExpandLimitFactor int
 
@@ -251,7 +254,7 @@ type Options struct {
 	Comparer comparer.Comparer
 
 	// Compression defines the 'sorted table' block compression to use.
-	//
+	// 目前只支持 snappy
 	// The default value (DefaultCompression) uses snappy compression.
 	Compression Compression
 
@@ -262,7 +265,7 @@ type Options struct {
 
 	// DisableBlockCache allows disable use of cache.Cache functionality on
 	// 'sorted table' block.
-	//
+	// 禁止块缓存
 	// The default value is false.
 	DisableBlockCache bool
 
@@ -341,7 +344,7 @@ type Options struct {
 
 	// OpenFilesCacheCapacity defines the capacity of the open files caching.
 	// Use -1 for zero, this has same effect as specifying NoCacher to OpenFilesCacher.
-	//
+	// 这个可以设置打开文件缓存容量文件的大小
 	// The default value is 500.
 	OpenFilesCacheCapacity int
 
@@ -360,6 +363,7 @@ type Options struct {
 	// LevelDB may held up to two 'memdb' at the same time.
 	//
 	// The default value is 4MiB.
+	// 写缓存，这个可以设置大一些
 	WriteBuffer int
 
 	// WriteL0StopTrigger defines number of 'sorted table' at level-0 that will
